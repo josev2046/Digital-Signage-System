@@ -1,3 +1,5 @@
+*Conceptual:
+
 @startuml
 skinparam sequenceMessageAlign center
 skinparam roundCorner 5
@@ -60,4 +62,61 @@ end group
 
 Cron -> Cron: **Wait for Next Daily Trigger (24 hours later)**
 ' The entire cycle repeats
+@enduml
+
+*Python Implementation (FFplay):
+
+@startuml
+skinparam sequenceMessageAlign center
+skinparam roundCorner 5
+skinparam participantPadding 15
+skinparam boxPadding 10
+skinparam ArrowColor DimGray
+skinparam HyperlinkColor blue
+skinparam lifelineStrategy solid
+skinparam ParticipantFontStyle Bold
+
+participant "Signage Script\n(Python)" as Script #LightGreen
+participant "Vimeo API" as Vimeo #Lavender
+database "Local Storage" as Storage #LightYellow
+participant "FFplay Process" as FFplay #Salmon
+
+autonumber
+
+box "Perpetual Content Cycle" #AliceBlue
+    Script -> Script: **Initiate New Cycle**
+    activate Script #LightGreen
+
+    Script -> FFplay: **Terminate previous instance (if active)**
+    note over FFplay: Ensures immediate takeover
+    deactivate FFplay
+    destroy FFplay
+
+    Script -> Vimeo: **Fetch All Videos (Ordered)**
+    activate Vimeo
+    Vimeo --> Script: List of MP4 Links
+    deactivate Vimeo
+
+    Script -> Script: **Determine Next Video in Sequence**
+    note right of Script: Reads/updates last played index file
+
+    Script -> Storage: **Clear old video files**
+
+    Script -> Vimeo: **Download Next Video**
+    activate Vimeo
+    Vimeo --> Script: Video Data Stream (.mp4)
+    deactivate Vimeo
+    Script -> Storage: **Save video file**
+
+    Script -> FFplay: **Launch new playback (non-blocking)**
+    activate FFplay #LightGreen
+    note right of FFplay: Plays for fixed or full duration
+    Script --> Script: Script continues execution
+
+    Script -> Script: **Calculate wait time**
+    note right of Script: To maintain `TARGET_CYCLE_DURATION_SECONDS`
+
+    Script -> Script: **Sleep until next cycle begins**
+end box
+
 @enduml
