@@ -17,7 +17,7 @@ participant "New MPV Process" as NewMPV #LightGreen
 
 autonumber
 
-box "Morning Refresh Cycle" #AliceBlue
+box "Morning Refresh Cycle" 
     Cron -> Script: **Execute Daily (e.g., 6:00 AM)**
     activate Script
 
@@ -50,7 +50,7 @@ box "Morning Refresh Cycle" #AliceBlue
     end
 end box
 
-group "Continuous Playback Loop" #LightCyan
+group "Continuous Playback Loop" 
     NewMPV -> Storage: **Read Video from Playlist**
     loop Indefinitely
         NewMPV -> NewMPV: **Decode & Render Video to Display**
