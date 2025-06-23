@@ -1,4 +1,6 @@
-# digital_signage_controller.py (Renamed for general use)
+# digital_signage_controller.py - for general use
+# make sure you repurpose it accordingly for Pi OS
+
 
 import os
 import requests
