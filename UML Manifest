@@ -1,0 +1,62 @@
+@startuml
+skinparam sequenceMessageAlign center
+skinparam roundCorner 5
+skinparam participantPadding 20
+skinparam boxPadding 10
+skinparam ArrowColor DimGray
+skinparam HyperlinkColor blue
+skinparam lifelineStrategy solid
+skinparam ParticipantFontStyle Bold
+
+participant "Cron Scheduler" as Cron
+participant "Digital Signage Script\n(Python)" as Script
+participant "Pi Local Storage" as Storage
+participant "Vimeo API" as Vimeo
+participant "Existing MPV Process\n(if running)" as OldMPV #LightSalmon
+participant "New MPV Process" as NewMPV #LightGreen
+
+autonumber
+
+box "Daily Update Cycle" #LightBlue
+Cron -> Script: Execute Daily (e.g., 6:00 AM)
+activate Script
+Script -> OldMPV: Stop (kill) instances
+activate OldMPV
+OldMPV --> Script: Termination signal received
+deactivate OldMPV
+destroy OldMPV
+
+Script -> Storage: Clear All Videos
+Script -> Vimeo: Request Latest Video Metadata
+activate Vimeo
+Vimeo --> Script: Video Metadata (Download URL)
+deactivate Vimeo
+
+alt Content Available & Downloadable
+    Script -> Vimeo: Download Video File
+    activate Vimeo
+    Vimeo --> Script: Video Data Stream
+    deactivate Vimeo
+    Script -> Storage: Save Video File
+    Script -> Script: Generate MPV Playlist
+    Script -> NewMPV: Launch Player (Detached Background Process)
+    activate NewMPV
+    Script --> Cron: Script Finishes
+    deactivate Script
+else No Content / Download Error
+    Script --> Cron: Script Finishes (No Playback)
+    deactivate Script
+end
+end box
+
+group Continuous Playback Loop (until next daily trigger)
+    NewMPV -> Storage: Read Video from Playlist
+    loop indefinitely
+        NewMPV -> NewMPV: Decode & Render Video to Display
+    end loop
+end group
+
+Cron -> Cron: Wait for Next Daily Trigger (24 hours later)
+' The entire "Daily Update Cycle" box repeats
+
+@enduml
