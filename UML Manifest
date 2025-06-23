@@ -8,55 +8,56 @@ skinparam HyperlinkColor blue
 skinparam lifelineStrategy solid
 skinparam ParticipantFontStyle Bold
 
-participant "Cron Scheduler" as Cron
-participant "Digital Signage Script\n(Python)" as Script
-participant "Pi Local Storage" as Storage
-participant "Vimeo API" as Vimeo
-participant "Existing MPV Process\n(if running)" as OldMPV #LightSalmon
+participant "Cron Scheduler" as Cron #LightBlue
+participant "Digital Signage Script\n(Python)" as Script #LightGreen
+database "Pi Local Storage" as Storage #LightYellow
+participant "Vimeo API" as Vimeo #Lavender
+participant "Existing MPV Process" as OldMPV #LightSalmon
 participant "New MPV Process" as NewMPV #LightGreen
 
 autonumber
 
-box "Daily Update Cycle" #LightBlue
-Cron -> Script: Execute Daily (e.g., 6:00 AM)
-activate Script
-Script -> OldMPV: Stop (kill) instances
-activate OldMPV
-OldMPV --> Script: Termination signal received
-deactivate OldMPV
-destroy OldMPV
+box "Morning Refresh Cycle" #AliceBlue
+    Cron -> Script: **Execute Daily (e.g., 6:00 AM)**
+    activate Script
 
-Script -> Storage: Clear All Videos
-Script -> Vimeo: Request Latest Video Metadata
-activate Vimeo
-Vimeo --> Script: Video Metadata (Download URL)
-deactivate Vimeo
+    Script -> OldMPV: **Stop (kill) instances**
+    activate OldMPV
+    OldMPV --> Script: Termination signal received
+    deactivate OldMPV
+    destroy OldMPV
 
-alt Content Available & Downloadable
-    Script -> Vimeo: Download Video File
+    Script -> Storage: **Clear All Videos**
+    Script -> Vimeo: **Request Latest Video Metadata**
     activate Vimeo
-    Vimeo --> Script: Video Data Stream
+    Vimeo --> Script: Video Metadata (URL, ID)
     deactivate Vimeo
-    Script -> Storage: Save Video File
-    Script -> Script: Generate MPV Playlist
-    Script -> NewMPV: Launch Player (Detached Background Process)
-    activate NewMPV
-    Script --> Cron: Script Finishes
-    deactivate Script
-else No Content / Download Error
-    Script --> Cron: Script Finishes (No Playback)
-    deactivate Script
-end
+
+    alt If Content Available
+        Script -> Vimeo: **Download Video File**
+        activate Vimeo
+        Vimeo --> Script: Video Data Stream
+        deactivate Vimeo
+        Script -> Storage: **Save Video File**
+        Script -> Script: **Generate MPV Playlist**
+        Script -> NewMPV: **Launch Player (Detached)**
+        activate NewMPV
+        Script --> Cron: Script Finishes
+        deactivate Script
+    else No Content / Download Error
+        Script --> Cron: Script Finishes (No Playback)
+        deactivate Script
+    end
 end box
 
-group Continuous Playback Loop (until next daily trigger)
-    NewMPV -> Storage: Read Video from Playlist
-    loop indefinitely
-        NewMPV -> NewMPV: Decode & Render Video to Display
+group "Continuous Playback Loop" #LightCyan
+    NewMPV -> Storage: **Read Video from Playlist**
+    loop Indefinitely
+        NewMPV -> NewMPV: **Decode & Render Video to Display**
     end loop
+    NewMPV -> NewMPV: **Loops back to start of playlist**
 end group
 
-Cron -> Cron: Wait for Next Daily Trigger (24 hours later)
-' The entire "Daily Update Cycle" box repeats
-
+Cron -> Cron: **Wait for Next Daily Trigger (24 hours later)**
+' The entire cycle repeats
 @enduml
